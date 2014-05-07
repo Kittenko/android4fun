@@ -1,0 +1,83 @@
+﻿@model MVCChatSite.Models.HomeVM
+
+@{
+	Page.Title = "MVC Chat Example";
+}
+
+@section ScriptSection {
+    <!-- The new message template... TODO: make it sexy -->
+    <script id="msgTmpl" type="text/x-jquery-tmpl">
+        <li><p style="margin-bottom:-2px; color: black;"><strong>${user.name}</strong></p><p>${message}</p></li>
+    </script>
+
+    <script type="text/javascript">
+        var initUserName = "user" + Math.floor(Math.random() * 101);
+
+        function getMessages() {
+            $.post("/Chat", null, function (data, s) {
+                if (data.messages) {
+                    $('#msgTmpl').tmpl(data.messages).appendTo('#chatList');
+                }
+
+                setTimeout(function () {
+                    getMessages();
+                }, 500)
+            });
+        }
+
+        $(document).ready(function () {
+            // Post to /Chat/New when submitting a message.
+            $('#msgBtn').bind('click', function () {
+                var msgVal = $('#msgBox').val();
+                $('#msgBox').val('');
+                $.post("/Chat/New", { user: $('#userBox').val(), msg: msgVal }, function (data, s) {
+                    if (data.d) {
+                        log('added message');
+                    }
+                    else {
+                        log('error adding message');
+                    }
+                    log(data);
+                    log(s);
+                });
+            });
+
+            // Submit a message on enter key.
+            $('#msgBox').keydown(function (e) {
+                if (e.keyCode == 13) {
+                    $('#msgBtn').click();
+                }
+            });
+
+            // initialize the user box name.
+            $('#userBox').val(initUserName);
+
+            // fire off the long polling after timeout so we don't get constant page loading
+            setTimeout(function () {
+                getMessages();
+            }, 100)
+        });
+    </script>
+}
+
+<h1>MVC Long Poll Chat</h1>
+<br />
+<div id="chatRoot">
+    <div>
+        <label for="userName">User: </label><input type="text" name="userName" id="userBox" />
+    </div>
+    <!-- yeah yeah yeah, TODO: put styles in css... it's just a demo, relax -->
+    <ul id="chatList" style="list-style-type: none; margin: 20px 0px 10px 0px; max-height: 500px; min-height: 500px; overflow: auto;">
+        @foreach (var msg in Model.Messages) { 
+            <li>
+                <p style="margin-bottom:-2px; color: black;">
+                <strong>@msg.user.name</strong>
+                </p>
+                <p>@msg.message</p>
+            </li>
+        }
+    </ul>
+    <div>
+        <input type="text" id="msgBox" /><input id="msgBtn" type="submit" value="speak on it" style="margin-left: 10px;" /><br />        
+    </div>
+</div>
